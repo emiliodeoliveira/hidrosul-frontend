@@ -1,0 +1,14 @@
+<div class="control-section">
+    <div align='center'>
+        <h2>Atualização dos Níveis da Catsul Guaíba</h2>
+        <h5>Última leitura: {{lastRiverDate |  date:"dd/MM/yyyy 'às' hh:mm a" }}</h5>
+        <h5>Última nível registrado: {{lastRiverValue}} metros</h5>
+                <div style="height: 320px; width: 100%;">
+                    <canvas baseChart
+                                    [data]="lineChartData"
+                                    [options]="lineChartOptions"
+                                    chartType="line">
+                    </canvas>
+                </div>
+    </div>
+</div>

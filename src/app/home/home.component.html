@@ -1,0 +1,197 @@
+<main class="dashboard">
+  <header class="dashboard-header">
+    <a class="brand" href="/home" aria-label="Página inicial HidroSul">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32">
+          <path d="M16 3C10.8 9.2 7 14.2 7 20a9 9 0 0018 0c0-5.8-3.8-10.8-9-17z"/>
+          <path class="brand-wave" d="M9.5 21c2.4-2.1 4.9-2.1 7.3 0 2.1 1.8 4.1 1.8 6.2.2"/>
+        </svg>
+      </span>
+      <span>
+        <strong>HidroSul</strong>
+        <small>Monitoramento regional</small>
+      </span>
+    </a>
+
+    <nav class="main-navigation" aria-label="Navegação principal">
+      <a routerLink="/home" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <button type="button" (click)="openAlertSignup()">Alertas de tempo</button>
+    </nav>
+
+    <nav class="header-actions" aria-label="Controles de localização">
+      <label class="city-select">
+        <span>Cidade</span>
+        <select [value]="selectedCity.name" (change)="selectCity(citySelect.value)" #citySelect>
+          <option *ngFor="let city of cities" [value]="city.name">
+            {{ city.name }} - {{ city.state }}
+          </option>
+          <option *ngIf="selectedCity.name === 'Sua localização'" [value]="selectedCity.name">
+            Sua localização
+          </option>
+        </select>
+      </label>
+      <button class="location-button" type="button" (click)="useMyLocation()" [disabled]="isLocating">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 21a9 9 0 100-18 9 9 0 000 18zm0-12a3 3 0 110 6 3 3 0 010-6zm0-6v3m0 12v3M3 12h3m12 0h3"/>
+        </svg>
+        {{ isLocating ? 'Localizando...' : 'Usar minha localização' }}
+      </button>
+      <button class="refresh-button" type="button" (click)="loadDashboard()" [disabled]="loading" aria-label="Atualizar dados">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 11a8 8 0 10-2.3 5.7M20 5v6h-6"/>
+        </svg>
+      </button>
+    </nav>
+  </header>
+
+  <div class="location-status" *ngIf="locationStatus">
+    {{ locationStatus }}
+  </div>
+
+  <section class="status-banner">
+    <div class="status-icon">i</div>
+    <div>
+      <strong>Telemetria fluvial temporariamente indisponível</strong>
+      <span>Funcionalidade está desativada temporariamente devido a manutenção do sistema de monitoramento. A previsão de chuva e os reservatórios continuam disponíveis.</span>
+    </div>
+  </section>
+
+  <section class="source-status">
+    <span class="source-ok">Open-Meteo ativo</span>
+    <span class="source-ok">ONS ativo</span>
+    <span [class.source-ok]="inmetAvailable" [class.source-off]="!inmetAvailable">
+      INMET {{ inmetAvailable ? 'ativo' : 'indisponível' }}
+    </span>
+  </section>
+
+  <section class="summary-grid" *ngIf="forecast">
+    <article class="metric-card accent-blue">
+      <span>Temperatura atual</span>
+      <strong>{{ temperature !== null ? (temperature | number:'1.0-1') + ' °C' : '--' }}</strong>
+      <small>{{ selectedCity.name }} - {{ selectedCity.state }}</small>
+    </article>
+    <article class="metric-card accent-cyan">
+      <span>Precipitação agora</span>
+      <strong>{{ rainNow | number:'1.0-1' }} mm</strong>
+      <small>Open-Meteo</small>
+    </article>
+    <article class="metric-card accent-violet">
+      <span>Chance de chuva</span>
+      <strong>{{ rainProbability | number:'1.0-0' }}%</strong>
+      <small>Próxima hora</small>
+    </article>
+  </section>
+
+  <section class="content-grid">
+    <article class="panel forecast-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Próximas horas</p>
+          <h2>Previsão de chuva</h2>
+        </div>
+        <span class="source-pill">Open-Meteo</span>
+      </div>
+
+      <div class="hourly-list" *ngIf="forecastHours.length; else forecastLoading">
+        <div class="hour-row" *ngFor="let hour of forecastHours">
+          <time>{{ hour.time | date:'HH:mm' }}</time>
+          <div class="rain-track">
+            <span [style.width.%]="hour.precipitation_probability_percent ?? 0"></span>
+          </div>
+          <strong>{{ hour.precipitation_mm | number:'1.0-1' }} mm</strong>
+        </div>
+      </div>
+      <ng-template #forecastLoading>
+        <p class="empty-state">Carregando previsão...</p>
+      </ng-template>
+    </article>
+
+    <article class="panel map-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">Visão regional</p>
+          <h2>Monitoramento no Sul</h2>
+        </div>
+      </div>
+      <div class="map" aria-label="Mapa da região selecionada">
+        <iframe
+          [src]="mapUrl"
+          title="Mapa de localização"
+          loading="lazy"
+          referrerpolicy="no-referrer">
+        </iframe>
+        <div class="map-location">
+          <strong>{{ selectedCity.name }}</strong>
+          <span>{{ selectedCity.latitude | number:'1.3-3' }}, {{ selectedCity.longitude | number:'1.3-3' }}</span>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel reservoirs-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">ONS</p>
+        <h2>Reservatórios da região Sul</h2>
+      </div>
+      <span class="source-pill">Dados abertos</span>
+    </div>
+    <div class="reservoir-grid" *ngIf="reservoirs.length; else reservoirsLoading">
+      <article class="reservoir-card" *ngFor="let reservoir of reservoirs">
+        <div class="reservoir-name">
+          <span class="reservoir-dot"></span>
+          <strong>{{ reservoir.name }}</strong>
+        </div>
+        <small>{{ reservoir.basin }}</small>
+      </article>
+    </div>
+    <ng-template #reservoirsLoading>
+      <p class="empty-state">Carregando reservatórios...</p>
+    </ng-template>
+  </section>
+
+  <div class="alert-modal-backdrop" *ngIf="showAlertSignup" (click)="closeAlertSignup()">
+    <section
+      class="alert-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="alert-modal-title"
+      (click)="$event.stopPropagation()">
+      <div class="alert-modal-heading">
+        <div>
+          <p class="eyebrow">Notificações</p>
+          <h2 id="alert-modal-title">Receber alertas de tempo</h2>
+        </div>
+        <button type="button" class="modal-close" (click)="closeAlertSignup()" aria-label="Fechar">×</button>
+      </div>
+
+      <p class="alert-modal-description">
+        Cadastre um canal para acompanhar alertas da região de {{ selectedCity.name }}.
+      </p>
+
+      <form class="alert-form" (ngSubmit)="subscribeToAlerts()">
+        <label>
+          E-mail
+          <input type="email" [(ngModel)]="alertEmail" name="alertEmail" placeholder="voce@exemplo.com">
+        </label>
+        <label>
+          Telefone
+          <input type="tel" [(ngModel)]="alertPhone" name="alertPhone" placeholder="(51) 99999-9999">
+        </label>
+        <label>
+          Tipo de alerta
+          <select [(ngModel)]="alertCondition" name="alertCondition">
+            <option>chuva intensa</option>
+            <option>tempestade</option>
+            <option>variação climática</option>
+          </select>
+        </label>
+
+        <p class="alert-message" *ngIf="alertMessage">{{ alertMessage }}</p>
+        <button type="submit" class="alert-submit" [disabled]="alertSubmitting">
+          {{ alertSubmitting ? 'Inscrevendo...' : 'Inscrever-se' }}
+        </button>
+      </form>
+    </section>
+  </div>
+</main>

@@ -1,0 +1,19 @@
+<div class="control-section">
+    <div *ngIf="isLoading">Carregando dados hidrológicos...</div>
+    <div align='center' *ngIf="haveData">
+        <h2>Atualização dos Níveis do Guaíba</h2>
+        <h5>Última leitura: {{lastRiverDate |  date:"dd/MM/yyyy 'às' hh:mm a" }}</h5>
+        <h5>Última nível registrado: {{lastRiverValue}} metros</h5>
+                <div style="height: 320px; width: 100%;">
+                    <canvas baseChart
+                                    [data]="lineChartData"
+                                    [options]="lineChartOptions"
+                                    chartType="line">
+                    </canvas>
+                </div>
+    </div>
+    <div *ngIf="!isLoading && errorMessage">
+        <p>{{errorMessage}}</p>
+        <button type="button" class="btn btn-outline-secondary mt-2" (click)="ngOnInit()">Tentar novamente</button>
+    </div>
+</div>
